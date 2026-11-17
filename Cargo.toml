@@ -3,6 +3,7 @@ name = "desktop_switcher"
 version = "1.0.0"
 edition = "2024"
 description = "Switch Windows virtual desktops with the mouse wheel on the taskbar"
+build = "build.rs"
 
 [[bin]]
 name = "DesktopSwitcher"
@@ -12,6 +13,10 @@ path = "src/main.rs"
 eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[build-dependencies]
+embed-resource = "3.0"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
 [target.'cfg(windows)'.dependencies]

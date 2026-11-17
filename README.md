@@ -30,3 +30,4 @@ The executable is at `target/release/DesktopSwitcher.exe`.
 
 - Windows 10 / 11 (x86_64).
 - Rust, 2024 edition (to build from source).
+- Windows SDK (`rc.exe`) to embed the application icon into the executable.
