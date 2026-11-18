@@ -11,6 +11,7 @@ use std::{env, fs, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/icon.rs");
+    println!("cargo:rerun-if-changed=assets/icon.png");
 
     let out = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR not set"));
     let ico = out.join("desktop_switcher.ico");

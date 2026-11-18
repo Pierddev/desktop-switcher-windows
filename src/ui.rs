@@ -57,12 +57,18 @@ pub fn run(opts: Options) -> eframe::Result<()> {
         native,
         Box::new(move |cc| {
             setup_style(&cc.egui_ctx);
+            let icon_texture = cc.egui_ctx.load_texture(
+                "app-icon",
+                egui::ColorImage::from_rgba_unmultiplied([64, 64], &icon::rgba(64)),
+                egui::TextureOptions::LINEAR,
+            );
             Ok(Box::new(SettingsApp {
                 cfg,
                 welcome: opts.welcome,
                 screenshot: opts.screenshot,
                 frame: 0,
                 shot_requested: false,
+                icon_texture,
             }))
         }),
     )
@@ -126,6 +132,7 @@ struct SettingsApp {
     screenshot: Option<PathBuf>,
     frame: u32,
     shot_requested: bool,
+    icon_texture: egui::TextureHandle,
 }
 
 impl eframe::App for SettingsApp {
@@ -216,7 +223,7 @@ impl eframe::App for SettingsApp {
                                     self.cfg.indicator_opacity = pct as f64 / 100.0;
                                 }
                             });
-                            hint_preview(ui, &self.cfg, t.hint_title, t.hint_sub);
+                            hint_preview(ui, &self.icon_texture, &self.cfg, t.hint_title, t.hint_sub);
                         });
                     });
                     ui.add_space(8.0);
@@ -251,7 +258,7 @@ impl SettingsApp {
 
     fn header(&self, ui: &mut Ui, t: &i18n::Texts) {
         ui.horizontal(|ui| {
-            app_mark(ui, 40.0);
+            app_mark(ui, &self.icon_texture, 40.0);
             ui.add_space(4.0);
             ui.vertical(|ui| {
                 ui.add_space(1.0);
@@ -288,17 +295,11 @@ impl SettingsApp {
 
 // ---------------------------------------------------------------- building blocks
 
-/// The app's mark: two overlapping desktops on a soft accent tile.
-fn app_mark(ui: &mut Ui, size: f32) {
+/// The app's mark: the same icon shown in Windows, the tray and the hint.
+fn app_mark(ui: &mut Ui, texture: &egui::TextureHandle, size: f32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::splat(size), Sense::hover());
-    let p = ui.painter();
-    p.rect_filled(rect, 10.0, ACCENT_SOFT);
-    let inner = rect.shrink(size * 0.22);
-    let back = Rect::from_min_max(inner.lerp_inside(Vec2::new(0.28, 0.0)), inner.lerp_inside(Vec2::new(1.0, 0.68)));
-    let front = Rect::from_min_max(inner.lerp_inside(Vec2::new(0.0, 0.32)), inner.lerp_inside(Vec2::new(0.72, 1.0)));
-    p.rect_filled(back, 3.0, Color32::from_rgb(0xa9, 0xc4, 0xf7));
-    p.rect_stroke(front, 3.0, Stroke::new(2.0_f32, ACCENT_SOFT), egui::StrokeKind::Outside);
-    p.rect_filled(front, 3.0, ACCENT);
+    let uv = Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+    ui.painter().image(texture.id(), rect, uv, Color32::WHITE);
 }
 
 fn status_pill(ui: &mut Ui, t: &i18n::Texts) {
@@ -449,7 +450,7 @@ fn segmented(ui: &mut Ui, id: &str, value: &mut String, options: &[(&str, &str)]
 }
 
 /// A small preview of the hint bubble at the chosen opacity, above a taskbar.
-fn hint_preview(ui: &mut Ui, cfg: &Config, title: &str, sub: &str) {
+fn hint_preview(ui: &mut Ui, icon_texture: &egui::TextureHandle, cfg: &Config, title: &str, sub: &str) {
     ui.add_space(4.0);
     let width = ui.available_width();
     let (rect, _) = ui.allocate_exact_size(Vec2::new(width, 100.0), Sense::hover());
@@ -469,11 +470,8 @@ fn hint_preview(ui: &mut Ui, cfg: &Config, title: &str, sub: &str) {
     let bubble = Rect::from_center_size(egui::pos2(area.center().x, area.top() + 8.0 + size.y / 2.0), size);
     p.rect(bubble, 14.0, fade(Color32::from_rgb(0x1c, 0x1e, 0x24)), Stroke::new(1.0_f32, fade(Color32::from_rgb(0x3a, 0x3d, 0x46))), egui::StrokeKind::Inside);
     let badge = Rect::from_min_size(egui::pos2(bubble.left() + 12.0, bubble.center().y - 15.0), Vec2::splat(30.0));
-    p.rect_filled(badge, 8.0, fade(ACCENT));
-    let back = Rect::from_min_size(badge.min + Vec2::new(10.5, 8.0), Vec2::new(13.0, 10.0));
-    let front = back.translate(Vec2::new(-4.0, 4.0));
-    p.rect_filled(back, 3.0, fade(Color32::from_rgb(0xa9, 0xc4, 0xf7)));
-    p.rect(front, 3.0, fade(Color32::WHITE), Stroke::new(1.0_f32, fade(ACCENT)), egui::StrokeKind::Outside);
+    let uv = Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+    p.image(icon_texture.id(), badge, uv, fade(Color32::WHITE));
     let tx = badge.right() + 10.0;
     let total = title_g.size().y + 1.0 + sub_g.size().y;
     let ty = bubble.center().y - total / 2.0;

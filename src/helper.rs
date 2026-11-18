@@ -774,6 +774,40 @@ fn fill_round(dc: HDC, l: i32, t: i32, r: i32, b: i32, radius: i32, fill: COLORR
     }
 }
 
+/// Draw the shared app icon into a square on the given HDC.
+fn paint_icon(dc: HDC, x: i32, y: i32, size: i32) {
+    let mut bgra = icon::rgba(size as u32);
+    for p in bgra.chunks_exact_mut(4) {
+        p.swap(0, 2);
+    }
+    unsafe {
+        let mut info: BITMAPINFO = std::mem::zeroed();
+        info.bmiHeader.biSize = std::mem::size_of::<BITMAPINFOHEADER>() as u32;
+        info.bmiHeader.biWidth = size;
+        info.bmiHeader.biHeight = -size; // top-down rows
+        info.bmiHeader.biPlanes = 1;
+        info.bmiHeader.biBitCount = 32;
+        info.bmiHeader.biCompression = BI_RGB;
+
+        let mem = CreateCompatibleDC(dc);
+        let bmp = CreateCompatibleBitmap(dc, size, size);
+        let old = SelectObject(mem, bmp);
+        SetDIBits(
+            mem,
+            bmp,
+            0,
+            size as u32,
+            bgra.as_ptr() as *const std::ffi::c_void,
+            &info,
+            DIB_RGB_COLORS,
+        );
+        BitBlt(dc, x, y, size, size, mem, 0, 0, SRCCOPY);
+        SelectObject(mem, old);
+        DeleteObject(bmp);
+        DeleteDC(mem);
+    }
+}
+
 /// Dark card, coloured badge with a small drawing, a title and a second line.
 fn paint_hint(dc: HDC, r: &RECT, k: f32, ctrl: bool, lang: &str, title_font: HFONT, sub_font: HFONT) {
     let px = |v: f32| (v * k).round() as i32;
@@ -787,13 +821,12 @@ fn paint_hint(dc: HDC, r: &RECT, k: f32, ctrl: bool, lang: &str, title_font: HFO
         DeleteObject(brush);
         fill_round(dc, 0, 0, r.right, r.bottom, px(RADIUS) * 2, card, Some(rgb(0x3a3d46)));
 
-        // badge
+        // badge: the shared app icon, or four tiles while Ctrl is held
         let bx = px(PAD_X);
         let bs = px(BADGE);
         let by = (r.bottom - bs) / 2;
-        fill_round(dc, bx, by, bx + bs, by + bs, px(16.0), accent, None);
         if ctrl {
-            // four small app tiles
+            fill_round(dc, bx, by, bx + bs, by + bs, px(16.0), accent, None);
             let cell = px(6.0);
             let gap = px(3.0);
             let ox = bx + (bs - cell * 2 - gap) / 2;
@@ -804,14 +837,7 @@ fn paint_hint(dc: HDC, r: &RECT, k: f32, ctrl: bool, lang: &str, title_font: HFO
                 fill_round(dc, x, y, x + cell, y + cell, px(3.0), white, None);
             }
         } else {
-            // two stacked desktops
-            let w = px(13.0);
-            let h = px(10.0);
-            let off = px(4.0);
-            let ox = bx + (bs - w - off) / 2;
-            let oy = by + (bs - h - off) / 2;
-            fill_round(dc, ox + off, oy, ox + off + w, oy + h, px(4.0), rgb(0xa9c4f7), None);
-            fill_round(dc, ox, oy + off, ox + w, oy + off + h, px(4.0), white, Some(accent));
+            paint_icon(dc, bx, by, bs);
         }
 
         // text
