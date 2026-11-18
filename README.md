@@ -12,6 +12,13 @@ The app runs in the background with no window: a small icon appears in the notif
 - Subtle hint bubble near the cursor, with a preview in the settings.
 - Settings window: language (French / English), sensitivity, active zone, opacity, launch at Windows startup.
 
+## Screenshots
+
+| Settings window | Hint bubble |
+| --- | --- |
+| ![Settings window](docs/settings.png) | ![Hint bubble](docs/hint.png) |
+| All options, plus the hint-bubble preview at the bottom. | Shown near the cursor when scrolling on the taskbar. |
+
 ## Build
 
 ```bash
